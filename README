@@ -1,21 +1,54 @@
-An initial Perl 6 grammar for JSON.
+JSON::Tiny
 
-This is a work in progress. For more information please join #perl6 on
-irc.freenode.net, and talk to moritz_ or viklund, or write a mail to
-perl6-users@perl.org.
+Minimal JSON with no dependencies.
 
-All files (unless noted otherwise) can be used, modified and redistributed
-under the terms of the Artistic License Version 2. Examples (in the
-documentation, in tests or distributed as separate files) can be considered
-public domain.
+DESCRIPTION
 
-State:
+Lightweight, fast, relaxed, pure-Perl JSON in a stand-alone module 
+with no non-core dependencies.
 
-    The parser is pretty complete, if you find anything that it should
-    parse and doesn't, or the other way round, please let me know.
+INSTALLATION
 
-    The emitter works.
+To install this module, run the following commands:
 
-Credits
-    Moritz Lenz <moritz@faui2k3.org>
-    Johan Viklund
+    perl Makefile.PL
+    make
+    make test
+    make install
+
+DEPENDENCIES
+
+This module requires a minimum Perl version of 5.10.0.
+
+SUPPORT AND DOCUMENTATION
+
+After installing, you can find documentation for this module with the
+perldoc command.
+
+    perldoc JSON::Tiny
+
+You can also look for information at:
+
+    RT, CPAN's request tracker (report bugs here)
+        http://rt.cpan.org/NoAuth/Bugs.html?Dist=JSON-Tiny
+
+    AnnoCPAN, Annotated CPAN documentation
+        http://annocpan.org/dist/JSON-Tiny
+
+    CPAN Ratings
+        http://cpanratings.perl.org/d/JSON-Tiny
+
+    Search CPAN
+        http://search.cpan.org/dist/JSON-Tiny/
+
+
+LICENSE AND COPYRIGHT
+
+Copyright (C) 2012 David Oswald
+
+This program is free software, you can redistribute it and/or modify 
+it under the terms of the Artistic License version 2.0.
+
+See http://www.perlfoundation.org/artistic_license_2_0 for more 
+information.
+
