@@ -1,17 +1,17 @@
 package JSON::Tiny;
 
-# Minimalistic JSON. Code and tests adapted from Mojo::JSON and Mojo::Util
-# (version 3.43). See the POD for more explanation.
+# Minimalistic JSON. Code and tests adapted from Mojo::JSON and Mojo::Util.
 
 # Licensed under the Artistic 2.0 license.
 # See http://www.perlfoundation.org/artistic_license_2_0.
 
 use strict;
+use warnings;
 use B;
 use Scalar::Util ();
 use Encode ();
 
-our $VERSION = '0.21';
+our $VERSION = '0.22';
 
 # Constructor and accessor, as we're not using Mojo::Base.
 
@@ -65,13 +65,13 @@ sub decode {
   $self->error(undef);
 
   # Missing input
-  $self->error('Missing or empty input') and return undef unless $bytes;
+  $self->error('Missing or empty input') and return undef unless $bytes; ## no critic (undef)
 
   # Remove BOM
   $bytes =~ s/^(?:\357\273\277|\377\376\0\0|\0\0\376\377|\376\377|\377\376)//g;
 
   # Wide characters
-  $self->error('Wide character in input') and return undef
+  $self->error('Wide character in input') and return undef ## no critic (undef)
     unless utf8::downgrade($bytes, 1);
 
   # Detect and decode Unicode
