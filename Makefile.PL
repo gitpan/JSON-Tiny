@@ -18,6 +18,7 @@ WriteMakefile(
     'English'    => '0',     # Core.
   },
   PREREQ_PM => {
+    'Exporter'     => '0',   # Core.
     'Scalar::Util' => '0',   # Core.
     'B'            => '0',   # Core.
     'Encode'       => '0',   # Core.
@@ -26,10 +27,10 @@ WriteMakefile(
     provides => {
       'JSON::Tiny' => {
         file    => 'lib/JSON/Tiny.pm',
-        version => '0.22'
+        version => '0.23'
       },
     },
   },
   dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-  clean => { FILES    => 'List-BinarySearch-*' },
+  clean => { FILES    => 'JSON-Tiny-*' },
 );
