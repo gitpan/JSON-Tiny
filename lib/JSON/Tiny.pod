@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8
+
 =head1 NAME
 
 JSON::Tiny - Minimalistic JSON. No dependencies.
@@ -74,6 +76,8 @@ L<JSON::Tiny> implements the following functions.
 
 Encode Perl data structure or decode JSON and return C<undef> if decoding
 fails.
+
+Dies with a C<JSON::Tiny::error> message on decode failure.
 
 =head1 ATTRIBUTES
 
