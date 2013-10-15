@@ -12,7 +12,7 @@ use Exporter 'import';
 use Scalar::Util ();
 use Encode ();
 
-our $VERSION = '0.32';
+our $VERSION = '0.33';
 our @EXPORT_OK = qw(j);
 
 # Constructor and accessor: we don't have Mojo::Base.
@@ -29,9 +29,11 @@ sub error {
 
 # The rest adapted from Mojo::JSON, with minor mods & naming changes.
 
+# Mojo::JSON sets these up as 'my' lexicals. We use 'our' so that users can
+# explicitly override the Booleans with just zero or one if they desire.
 # Literal names
-my $FALSE = bless \(my $false = 0), 'JSON::Tiny::_Bool';
-my $TRUE  = bless \(my $true  = 1), 'JSON::Tiny::_Bool';
+our $FALSE = bless \(my $false = 0), 'JSON::Tiny::_Bool';
+our $TRUE  = bless \(my $true  = 1), 'JSON::Tiny::_Bool';
 
 # Escaped special character map (with u2028 and u2029)
 my %ESCAPE = (
@@ -102,7 +104,7 @@ sub decode {
     # Object
     elsif (m/\G\{/gc) { $ref = _decode_object() }
 
-    # Unexpected
+    # Invalid character
     else { _exception('Expected array or object') }
 
     # Leftover data
@@ -196,7 +198,7 @@ sub _decode_string {
   m!\G((?:(?:[^\x00-\x1f\\"]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4})){0,32766})*)!gc; # segfault under 5.8.x in t/20-mojo-json.t #83
   my $str = $1;
 
-  # Missing quote
+  # Invalid character
   unless (m/\G"/gc) {
     _exception('Unexpected character or invalid escape while parsing string')
       if m/\G[\x00-\x1f\\]/;
@@ -272,7 +274,7 @@ sub _decode_value {
   # Null
   return undef if m/\Gnull/gc;  ## no critic (return)
 
-  # Invalid data
+  # Invalid character
   _exception('Expected string, array, object, number, boolean or null');
 }
 
