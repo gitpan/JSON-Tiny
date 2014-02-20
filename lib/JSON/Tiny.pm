@@ -13,7 +13,7 @@ use Exporter 'import';
 use Scalar::Util ();
 use Encode ();
 
-our $VERSION = '0.41';
+our $VERSION = '0.42';
 our @EXPORT_OK = qw(decode_json encode_json j);
 
 # Constructor and accessor: we don't have Mojo::Base.
@@ -48,7 +48,7 @@ my %ESCAPE = (
 );
 my %REVERSE = map { $ESCAPE{$_} => "\\$_" } keys %ESCAPE;
 
-for( 0x00 .. 0x1f, 0x7f ) {
+for(0x00 .. 0x1f) {
   my $packed = pack 'C', $_;
   $REVERSE{$packed} = sprintf '\u%.4X', $_
     if ! defined( $REVERSE{$packed} );
@@ -74,7 +74,9 @@ sub decode {
 }
 
 sub decode_json {
-  eval { _decode(shift) } // croak _chomp($@);
+  my $ret = eval { _decode(shift) };
+  croak _chomp($@) unless defined $ret;
+  return $ret;
 }
 
 sub encode { encode_json($_[1]) }
@@ -107,8 +109,8 @@ sub _decode {
   my $encoding = 'UTF-8';
   $bytes =~ $UTF_PATTERNS->{$_} and $encoding = $_ for keys %$UTF_PATTERNS;
 
-  my $d_res = eval { $bytes = Encode::decode($encoding, $bytes, 1) // ''; 1 };
-  $bytes = '' unless defined $d_res;
+  my $ok = eval { $bytes = Encode::decode($encoding, $bytes, 1); 1; };
+  $bytes = '' unless defined $ok;
   local $_ = $bytes;
 
   # Leading whitespace
@@ -284,7 +286,7 @@ sub _encode_object {
 
 sub _encode_string {
   my $str = shift;
-  $str =~ s!([\x00-\x1f\x7f\x{2028}\x{2029}\\"/\b\f\n\r\t])!$REVERSE{$1}!gs;
+  $str =~ s!([\x00-\x1f\x{2028}\x{2029}\\"/])!$REVERSE{$1}!gs;
   return "\"$str\"";
 }
 
@@ -333,7 +335,7 @@ sub _exception {
   my $context = 'Malformed JSON: ' . shift;
   if (m/\G\z/gc) { $context .= ' before end of data' }
   else {
-    my @lines = split /\n/, substr($_, 0, pos);
+    my @lines = split "\n", substr($_, 0, pos);
     $context .= ' at line ' . @lines . ', offset ' . length(pop @lines || '');
   }
 
