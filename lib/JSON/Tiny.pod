@@ -8,19 +8,18 @@ JSON::Tiny - Minimalistic JSON. No dependencies.
 
 =head1 SYNOPSIS
 
-    use JSON::Tiny;
+    use JSON::Tiny qw(decode_json encode_json);
 
-    # Encode and decode JSON
-    my $json  = JSON::Tiny->new;
-    my $bytes = $json->encode({foo => [1, 2], bar => 'hello!', baz => \1});
-    my $hash  = $json->decode($bytes);
+    # Encode and decode JSON (die on errors)
+    my $bytes = encode_json({foo => [1, 2], bar => 'hello!', baz => \1});
+    my $hash  = decode_json($bytes);
 
-    # Check for errors
+    # Handle errors
     my $json = JSON::Tiny->new;
     if(defined(my $hash = $json->decode($bytes))) { say $hash->{message} }
     else { say 'Error: ', $json->error }
 
-    # Use the alternative interface
+    # Use the shortcut interface (die on errors)
     use JSON::Tiny 'j';
     my $bytes = j({foo => [1, 2], bar => 'hello!', baz => \1});
     my $hash  = j($bytes);
@@ -58,7 +57,22 @@ C<u2028> and C<u2029> will always be escaped to make JSONP easier.
 
 =head1 FUNCTIONS
 
-L<JSON::Tiny> implements the following functions.
+L<JSON::Tiny> implements the following functions, which can be imported
+individually.
+
+=head2 decode_json
+
+  my $array = decode_json($bytes);
+  my $hash  = decode_json($bytes);
+
+Decode JSON to Perl data structure and die if decoding fails.
+
+=head2 encode_json
+
+  my $bytes = encode_json([1, 2, 3]);
+  my $bytes = encode_json({foo => 'bar'});
+
+Encode Perl data structure to JSON.
 
 =head2 j
 
@@ -152,7 +166,7 @@ sane defaults, and zero configuration.
 dependencies. JSON::Tiny requires Perl 5.8.4, while L<JSON::PP> requires 5.6.
 
 =item * Simple Design: L<JSON> has 2254 lines of code in six modules and five
-files, and a dist tarball of 84KB. L<JSON::Tiny> has 350 lines of code; a
+files, and a dist tarball of 84KB. L<JSON::Tiny> has under 350 lines of code; a
 single module in a single file -- great for embedding. The tarball is 19KB.
 
 =item * L<JSON::PP> has 42 functions and methods. L<JSON::Tiny> has seven.

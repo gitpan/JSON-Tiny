@@ -8,12 +8,13 @@ package JSON::Tiny;
 use strict;
 use warnings;
 use B;
+use Carp 'croak';
 use Exporter 'import';
 use Scalar::Util ();
 use Encode ();
 
-our $VERSION = '0.40';
-our @EXPORT_OK = qw(j);
+our $VERSION = '0.41';
+our @EXPORT_OK = qw(decode_json encode_json j);
 
 # Constructor and accessor: we don't have Mojo::Base.
 sub new {
@@ -64,75 +65,72 @@ my $UTF_PATTERNS = {
 my $WHITESPACE_RE = qr/[\x20\x09\x0a\x0d]*/;
 
 sub decode {
-  my ($self, $bytes) = @_;
-
-  # Clean start
+  my $self = shift;
   $self->error(undef);
+  my $ref = eval { _decode(shift) };
+  return $ref if $ref;
+  $self->error(_chomp($@));
+  return undef;  ## no critic(return)
+}
+
+sub decode_json {
+  eval { _decode(shift) } // croak _chomp($@);
+}
+
+sub encode { encode_json($_[1]) }
+
+sub encode_json { Encode::encode 'UTF-8', _encode_value(shift); }
+
+sub false {$FALSE}
+
+sub j {
+  return encode_json($_[0]) if ref $_[0] eq 'ARRAY' || ref $_[0] eq 'HASH';
+  return decode_json($_[0]);
+}
+
+sub true {$TRUE}
+
+sub _chomp { chomp $_[0]; $_[0]; }
+
+sub _decode {
 
   # Missing input
-  $self->error('Missing or empty input') and return undef unless $bytes; ## no critic (undef)
+  die "Missing or empty input\n" unless length(my $bytes = shift);
 
   # Remove BOM
   $bytes =~ s/^(?:\357\273\277|\377\376\0\0|\0\0\376\377|\376\377|\377\376)//g;
 
   # Wide characters
-  $self->error('Wide character in input') and return undef ## no critic (undef)
-    unless utf8::downgrade($bytes, 1);
+  die "Wide character in input\n" unless utf8::downgrade($bytes, 1);
 
   # Detect and decode Unicode
   my $encoding = 'UTF-8';
   $bytes =~ $UTF_PATTERNS->{$_} and $encoding = $_ for keys %$UTF_PATTERNS;
 
-  my $d_res = eval { $bytes = Encode::decode($encoding, $bytes, 1); 1 };
-  $bytes = undef unless $d_res;
+  my $d_res = eval { $bytes = Encode::decode($encoding, $bytes, 1) // ''; 1 };
+  $bytes = '' unless defined $d_res;
+  local $_ = $bytes;
 
-  # Object or array
-  my $res = eval {
-    local $_ = $bytes;
+  # Leading whitespace
+  m/\G$WHITESPACE_RE/gc;
 
-    # Leading whitespace
-    m/\G$WHITESPACE_RE/gc;
+  # Array
+  my $ref;
+  if (m/\G\[/gc) { $ref = _decode_array() }
 
-    # Array
-    my $ref;
-    if (m/\G\[/gc) { $ref = _decode_array() }
+  # Object
+  elsif (m/\G\{/gc) { $ref = _decode_object() }
 
-    # Object
-    elsif (m/\G\{/gc) { $ref = _decode_object() }
+  # Invalid character
+  else { _exception('Expected array or object') }
 
-    # Invalid character
-    else { _exception('Expected array or object') }
-
-    # Leftover data
-    unless (m/\G$WHITESPACE_RE\z/gc) {
-      my $got = ref $ref eq 'ARRAY' ? 'array' : 'object';
-      _exception("Unexpected data after $got");
-    }
-
-    $ref;
-  };
-
-  # Exception
-  if (!$res && (my $e = $@)) {
-    chomp $e;
-    $self->error($e);
+  # Leftover data
+  unless(m/\G$WHITESPACE_RE\z/gc) {
+    my $got = ref $ref eq 'ARRAY' ? 'array' : 'object';
+    _exception("Unexpected data after $got");
   }
 
-  return $res;
-}
-
-sub encode {
-  return Encode::encode 'UTF-8', _encode_value($_[1]);
-}
-
-sub false {$FALSE}
-sub true {$TRUE}
-
-sub j {
-  my( $d, $j ) = ( shift, __PACKAGE__->new );
-  return $j->encode($d) if ref $d eq 'ARRAY' || ref $d eq 'HASH';
-  defined and return $_ for $j->decode($d);
-  die $j->error;
+  return $ref;
 }
 
 sub _decode_array {
