@@ -19,11 +19,6 @@ JSON::Tiny - Minimalistic JSON. No dependencies.
     if(defined(my $hash = $json->decode($bytes))) { say $hash->{message} }
     else { say 'Error: ', $json->error }
 
-    # Use the shortcut interface (die on errors)
-    use JSON::Tiny 'j';
-    my $bytes = j({foo => [1, 2], bar => 'hello!', baz => \1});
-    my $hash  = j($bytes);
-
 =head1 DESCRIPTION
 
 L<JSON::Tiny> is a minimalistic standalone adaptation of L<Mojo::JSON>, from
@@ -78,7 +73,7 @@ Decode JSON to Perl data structure and die if decoding fails.
 
 Encode Perl data structure to JSON.
 
-=head2 j
+=head2 j (DEPRECATED)
 
     my $bytes = j([1, 2, 3]);
     my $bytes = j({foo => 'bar'});
@@ -86,6 +81,12 @@ Encode Perl data structure to JSON.
     my $hash  = j($bytes);
 
 Encode Perl data structure, or decode JSON and die if decoding fails.
+
+B<This function has been deprecated.  RFC7159 specifies that scalars
+are now legitimate encode/decode entities, which makes j()'s ability
+to decide whether to encode or decode an intractable question.  This
+function will be removed in an upcoming release without further
+warning.>
 
 =head1 ATTRIBUTES
 
@@ -168,7 +169,7 @@ dependencies. JSON::Tiny requires Perl 5.8.4, while L<JSON::PP> requires 5.6.
 
 =item * Simple Design: L<JSON> has 2254 lines of code in six modules and five
 files, and a dist tarball of 85KB. L<JSON::Tiny> has under 350 lines of code; a
-single module in a single file -- good for embedding. The tarball is 18KB.
+single module in a single file -- good for embedding. The tarball is 19KB.
 
 =item * L<JSON::PP> has 42 functions and methods. L<JSON::Tiny> has nine.
 
@@ -274,7 +275,7 @@ alternatives to his regexp solution led to this fork of Mojo::JSON.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2012-2013 David Oswald.
+Copyright 2012-2014 David Oswald.
 
 This program is free software, you can redistribute it and/or modify it under
 the terms of the Artistic License version 2.0.
@@ -283,6 +284,6 @@ See L<http://www.perlfoundation.org/artistic_license_2_0> for more information.
 
 =head1 SEE ALSO
 
-L<JSON>, L<JSON::PP>, L<JSON::XS>, L<Mojo::JSON>.
+L<JSON>, L<JSON::PP>, L<Mojo::JSON>.
 
 =cut

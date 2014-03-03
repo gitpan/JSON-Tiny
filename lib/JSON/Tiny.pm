@@ -1,19 +1,18 @@
 package JSON::Tiny;
 
 # Minimalistic JSON. Adapted from Mojo::JSON and Mojo::Util.
-
 # License: Artistic 2.0 license.
 # http://www.perlfoundation.org/artistic_license_2_0.
 
 use strict;
 use warnings;
 use B;
-use Carp 'croak';
+use Carp qw(croak carp);
 use Exporter 'import';
 use Scalar::Util ();
 use Encode ();
 
-our $VERSION = '0.42';
+our $VERSION = '0.43';
 our @EXPORT_OK = qw(decode_json encode_json j);
 
 # Constructor and accessor: we don't have Mojo::Base.
@@ -27,7 +26,7 @@ sub error {
   return $_[0]->{error};
 }
 
-# Mojo::JSON uses 'my' lexicals here. We use 'our' so users may override the
+# Mojo::JSON uses 'my'. We use 'our' so users may override the
 # Booleans with literal 0 or 1 if desired.
 # Literal names
 our $FALSE = bless \(my $false = 0), 'JSON::Tiny::_Bool';
@@ -75,8 +74,8 @@ sub decode {
 
 sub decode_json {
   my $ret = eval { _decode(shift) };
-  croak _chomp($@) unless defined $ret;
-  return $ret;
+  return $ret if defined $ret;
+  croak _chomp($@)
 }
 
 sub encode { encode_json($_[1]) }
@@ -86,6 +85,9 @@ sub encode_json { Encode::encode 'UTF-8', _encode_value(shift); }
 sub false {$FALSE}
 
 sub j {
+  carp "JSON::Tiny::j is deprecated to facilitate compliance with RFC7159.\n"
+       . "It will be removed without warning further from JSON::Tiny.\n"
+       . "Use encode_json and decode_json instead.";
   return encode_json($_[0]) if ref $_[0] eq 'ARRAY' || ref $_[0] eq 'HASH';
   return decode_json($_[0]);
 }
