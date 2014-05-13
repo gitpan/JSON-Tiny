@@ -1,30 +1,31 @@
 package JSON::Tiny;
 
-# Minimalistic JSON. Adapted from Mojo::JSON and Mojo::Util.
-# (c) 2012-2014 David Oswald
+# Minimalistic JSON. Adapted from Mojo::JSON.
+# (c)2012-2014 David Oswald
 # License: Artistic 2.0 license.
 # http://www.perlfoundation.org/artistic_license_2_0.
 
 use strict;
 use warnings;
 use B;
-use Carp qw(croak carp);
+use Carp 'croak';
 use Exporter 'import';
 use Scalar::Util ();
 use Encode ();
 
-our $VERSION = '0.45';
+our $VERSION = '0.47';
 our @EXPORT_OK = qw(decode_json encode_json j);
 
-# Constructor and accessor: we don't have Mojo::Base.
+# Constructor and error inlined from Mojo::Base
 sub new {
   my $class = shift;
-  bless @_ ? @_ > 1 ? {@_} : {%{$_[0]}} : {}, $class;
+  bless @_ ? @_ > 1 ? {@_} : {%{$_[0]}} : {}, ref $class || $class;
 }
 
 sub error {
-  $_[0]->{error} = $_[1] if @_ > 1;
-  return $_[0]->{error};
+  return $_[0]{error} if @_ == 1;
+  $_[0]{error} = $_[1];
+  $_[0];
 }
 
 # Literal names
@@ -50,51 +51,49 @@ my %REVERSE = map { $ESCAPE{$_} => "\\$_" } keys %ESCAPE;
 for(0x00 .. 0x1f) {
   my $packed = pack 'C', $_;
   $REVERSE{$packed} = sprintf '\u%.4X', $_
-    if ! defined( $REVERSE{$packed} );
+    if ! defined $REVERSE{$packed};
 }
 
 my $WHITESPACE_RE = qr/[\x20\x09\x0a\x0d]*/;
 
 sub decode {
-  my $self = shift;
-  $self->error(undef);
+  my $self = shift->error(undef);
   my $value;
-  return $value if eval{ $value = _decode(shift); 1; };
+  return $value if eval{ $value = _decode(shift); 1 };
   $self->error(_chomp($@));
   return undef;  ## no critic(return)
 }
 
 sub decode_json {
   my $value;
-  return eval { $value = _decode(shift); 1; } ? $value : croak _chomp($@);
+  return eval { $value = _decode(shift); 1 } ? $value : croak _chomp($@);
 }
 
-sub encode { encode_json($_[1]) }
+sub encode { encode_json $_[1] }
 
 sub encode_json { Encode::encode 'UTF-8', _encode_value(shift); }
 
 sub false {$FALSE}
 
 sub j {
-  return encode_json($_[0]) if ref $_[0] eq 'ARRAY' || ref $_[0] eq 'HASH';
-  return decode_json($_[0]);
+  return encode_json $_[0] if ref $_[0] eq 'ARRAY' || ref $_[0] eq 'HASH';
+  return decode_json $_[0];
 }
 
 sub true {$TRUE}
 
-sub _chomp { chomp $_[0] ? $_[0] : $_[0]; }
+sub _chomp { chomp $_[0] ? $_[0] : $_[0] }
 
 sub _decode {
   # Missing input
-  die "Missing or empty input\n" unless length(my $bytes = shift);
+  die "Missing or empty input\n" unless length(local $_ = shift);
 
   # Wide characters
-  die "Wide character in input\n" unless utf8::downgrade($bytes, 1);
+  die "Wide character in input\n" unless utf8::downgrade($_, 1);
 
   # UTF-8
-  local $_;
   die "Input is not UTF-8 encoded\n"
-    unless eval { $_ = Encode::decode('UTF-8', $bytes, 1); 1; };
+    unless eval { $_ = Encode::decode('UTF-8', $_, 1); 1 };
 
   # Value
   my $value = _decode_value();
@@ -160,7 +159,7 @@ sub _decode_string {
   my $pos = pos;
   
   # Extract string with escaped characters
-  m!\G((?:(?:[^\x00-\x1f\\"]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4})){0,32766})*)!gc; # segfault on 5.8.x in t/20-mojo-json.t #83
+  m!\G((?:(?:[^\x00-\x1f\\"]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4})){0,32766})*)!gc; # segfault on 5.8.x in t/20-mojo-json.t
   my $str = $1;
 
   # Invalid character
@@ -208,7 +207,7 @@ sub _decode_string {
   }
 
   # The rest
-  return $buffer . substr $str, pos($str), length($str);
+  return $buffer . substr $str, pos $str, length $str;
 }
 
 sub _decode_value {
@@ -243,8 +242,7 @@ sub _decode_value {
 }
 
 sub _encode_array {
-  my $array = shift;
-  return '[' . join(',', map { _encode_value($_) } @$array) . ']';
+  '[' . join(',', map { _encode_value($_) } @{$_[0]}) . ']';
 }
 
 sub _encode_object {
@@ -286,8 +284,12 @@ sub _encode_value {
   return 'null' unless defined $value;
 
   # Number
-  my $flags = B::svref_2object(\$value)->FLAGS;
-  return 0 + $value if $flags & (B::SVp_IOK | B::SVp_NOK) && $value * 0 == 0;
+  if(B::svref_2object(\$value)->FLAGS & (B::SVp_IOK | B::SVp_NOK)) {
+    no warnings 'numeric';
+    my $num = $value;
+    $num += 0;
+    return $num if $num eq $value && $num * 0 == 0;
+  }
 
   # String
   return _encode_string($value);

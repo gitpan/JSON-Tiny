@@ -3,16 +3,15 @@ package JSONTest; ## no critic (package)
 use strict;
 
 # Emulate Mojo::Base -base.
-
 sub new {
   my $class = shift;
-  bless @_ ? @_ > 1 ? {@_} : {%{$_[0]}} : {}, $class;
+  bless @_ ? @_ > 1 ? {@_} : {%{$_[0]}} : {}, ref $class || $class;
 }
 
 sub something {
   my $self = shift;
   $self->{something} = shift if @_;
-  $self->{something} = {}    if ! defined $self->{something};
+  $self->{something} = {} if ! defined $self->{something};
   return $self->{something};
 }
 
@@ -25,9 +24,7 @@ use utf8;
 use Encode qw( encode decode );
 use Test::More;
 
-plan tests => 148;  # One blessed reference test disabled: Difficult without
-                    # Mojo::ByteStream & Mojo::Base. Other blessed reference
-                    # tests still exist.
+plan tests => 149;  # One blessed ref test disabled: needs Mojo::ByteStream
 
 use JSON::Tiny qw(decode_json encode_json j);
 
@@ -115,17 +112,17 @@ is_deeply $hash, {foo => [qw(23 bar)]}, 'decode {"foo": [23, "bar"]}';
 # Decode full spec example
 $hash = decode_json <<EOF;
 {
-   "Image": {
-       "Width":  800,
-       "Height": 600,
-       "Title":  "View from 15th Floor",
-       "Thumbnail": {
-           "Url":    "http://www.example.com/image/481989943",
-           "Height": 125,
-           "Width":  "100"
-       },
-       "IDs": [116, 943, 234, 38793]
-    }
+  "Image": {
+    "Width":  800,
+    "Height": 600,
+    "Title":  "View from 15th Floor",
+    "Thumbnail": {
+      "Url":    "http://www.example.com/image/481989943",
+      "Height": 125,
+      "Width":  "100"
+    },
+    "IDs": [116, 943, 234, 38793]
+  }
 }
 EOF
 is $hash->{Image}{Width},  800,                    'right value';
@@ -219,9 +216,9 @@ $bytes = encode_json 23.3;
 is $bytes, '23.3', 'encode 23.3';
 
 # Faihu roundtrip
-$bytes = j(["\x{10346}"]);
+$bytes = j ["\x{10346}"];
 is decode( 'UTF-8', $bytes ), "[\"\x{10346}\"]", 'encode ["\x{10346}"]';
-$array = j($bytes);
+$array = j $bytes;
 is_deeply $array, ["\x{10346}"], 'successful roundtrip';
 
 # Decode faihu surrogate pair
@@ -304,8 +301,14 @@ is encode_json({test => [$num, $str]}), '{"test":[3.21,"3.21"]}',
   'upgraded number detected';
 $str = '0 but true';
 $num = 1 + $str;
-is encode_json({test => [$num, $str]}), '{"test":[1,0]}',
+is encode_json({test => [$num, $str]}), '{"test":[1,"0 but true"]}',
   'upgraded number detected';
+
+# Upgraded string
+$str = "bar";
+{ no warnings 'numeric'; $num = 23 + $str }
+is encode_json({test => [$num, $str]}), '{"test":[23,"bar"]}',
+  'upgraded string detected';
 
 # "inf" and "nan"
 like encode_json({test => 9**9**9}), qr/^{"test":".*"}$/,
@@ -373,8 +376,8 @@ is $json->error, 'Malformed JSON: Unexpected data at line 3, offset 8',
   'right error';
 is $json->decode(encode('Shift_JIS', 'やった')), undef, 'invalid encoding';
 is $json->error, 'Input is not UTF-8 encoded', 'right error';
-is eval { j('{'), 1 }, undef, 'syntax error';
-eval { decode_json("[\"foo\",\n\"bar\",\n\"bazra\"]lalala") };
+is eval { j '{'; 1 }, undef, 'syntax error';
+eval { decode_json "[\"foo\",\n\"bar\",\n\"bazra\"]lalala" };
 like $@,
   qr/JSON: Unexpected data at line 3, offset 8 at.*json\.t/,
   'right error';
