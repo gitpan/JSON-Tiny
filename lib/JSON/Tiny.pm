@@ -10,10 +10,10 @@ use warnings;
 use B;
 use Carp 'croak';
 use Exporter 'import';
-use Scalar::Util ();
+use Scalar::Util 'blessed';
 use Encode ();
 
-our $VERSION = '0.48';
+our $VERSION = '0.49';
 our @EXPORT_OK = qw(decode_json encode_json j);
 
 # Constructor and error inlined from Mojo::Base
@@ -29,11 +29,11 @@ sub error {
 }
 
 # Literal names
-# Users may override the Booleans with literal 0 or 1 if desired.
+# Users may override Booleans with literal 0 or 1 if desired.
 our $FALSE = bless \(my $false = 0), 'JSON::Tiny::_Bool';
 our $TRUE  = bless \(my $true  = 1), 'JSON::Tiny::_Bool';
 
-# Escaped special character map (with u2028 and u2029)
+# Escaped special character map with u2028 and u2029
 my %ESCAPE = (
   '"'     => '"',
   '\\'    => '\\',
@@ -69,7 +69,7 @@ sub decode_json {
   return eval { $value = _decode(shift); 1 } ? $value : croak _chomp($@);
 }
 
-sub encode { encode_json $_[1] }
+sub encode { encode_json($_[1]) }
 
 sub encode_json { Encode::encode 'UTF-8', _encode_value(shift); }
 
@@ -242,7 +242,8 @@ sub _decode_value {
 }
 
 sub _encode_array {
-  '[' . join(',', map { _encode_value($_) } @{$_[0]}) . ']';
+  my $array = shift;
+  '[' . join(',', map { _encode_value($_) } @$array) . ']';
 }
 
 sub _encode_object {
@@ -275,7 +276,7 @@ sub _encode_value {
     return $value  ? 'true' : 'false' if $ref eq 'JSON::Tiny::_Bool';
 
     # Blessed reference with TO_JSON method
-    if (Scalar::Util::blessed $value && (my $sub = $value->can('TO_JSON'))) {
+    if (blessed $value && (my $sub = $value->can('TO_JSON'))) {
       return _encode_value($value->$sub);
     }
   }
